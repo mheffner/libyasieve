@@ -1,0 +1,155 @@
+# Makefile.in - sieve makefile
+# sieve/Makefile.  Generated from Makefile.in by configure.
+#
+# Copyright (c) 1994-2008 Carnegie Mellon University.  All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#
+# 1. Redistributions of source code must retain the above copyright
+#    notice, this list of conditions and the following disclaimer.
+#
+# 2. Redistributions in binary form must reproduce the above copyright
+#    notice, this list of conditions and the following disclaimer in
+#    the documentation and/or other materials provided with the
+#    distribution.
+#
+# 3. The name "Carnegie Mellon University" must not be used to
+#    endorse or promote products derived from this software without
+#    prior written permission. For permission or any legal
+#    details, please contact
+#      Carnegie Mellon University
+#      Center for Technology Transfer and Enterprise Creation
+#      4615 Forbes Avenue
+#      Suite 302
+#      Pittsburgh, PA  15213
+#      (412) 268-7393, fax: (412) 268-7395
+#      innovation@andrew.cmu.edu
+#
+# 4. Redistributions of any form whatsoever must retain the following
+#    acknowledgment:
+#    "This product includes software developed by Computing Services
+#     at Carnegie Mellon University (http://www.cmu.edu/computing/)."
+#
+# CARNEGIE MELLON UNIVERSITY DISCLAIMS ALL WARRANTIES WITH REGARD TO
+# THIS SOFTWARE, INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
+# AND FITNESS, IN NO EVENT SHALL CARNEGIE MELLON UNIVERSITY BE LIABLE
+# FOR ANY SPECIAL, INDIRECT OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+# WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN
+# AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING
+# OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+#
+# $Id: Makefile.in,v 1.45 2008/07/10 16:37:20 murch Exp $
+
+srcdir = .
+top_srcdir = ..
+
+
+prefix = /usr/local
+cyrus_prefix = /usr/cyrus
+service_path = /usr/cyrus/bin
+
+CC = gcc
+YACC = yacc
+YFLAGS = -d
+LEX = :
+RANLIB = ranlib
+COMPILE_ET = /usr/bin/compile_et
+
+DEFS = -DHAVE_CONFIG_H 
+CPPFLAGS = -I.. -I$(srcdir)/../lib -I../libutil
+MAKEDEPEND_CFLAGS = -g -O2
+CFLAGS = -g -O2 
+LDFLAGS = 
+
+MAKEDEPEND = makedepend
+
+IMAP_LIBS =  
+IMAP_COM_ERR_LIBS = -lcom_err
+IMAP_LIBS =
+LIBS = $(IMAP_LIBS) $(IMAP_COM_ERR_LIBS)
+DEPLIBS=  ../libutil/libutil.a
+
+BUILT_SOURCES = addr.c addr.h addr-lex.c \
+	sieve.c sieve.h sieve-lex.c \
+	sieve_err.h sieve_err.c
+
+all: libsieve.a sievec sieved
+
+dist: $(BUILT_SOURCES)
+
+install: sievec sieved
+	$(srcdir)/../install-sh -d ${DESTDIR}$(service_path)
+	$(srcdir)/../install-sh -c -m 755 sievec $(DESTDIR)$(service_path) || exit
+	$(srcdir)/../install-sh -c -m 755 sieved $(DESTDIR)$(service_path) || exit
+
+test: $(DEPLIBS) libsieve.a test.o ../imap/message.o
+	$(CC) $(LDFLAGS) -o test test.o ../imap/message.o \
+	libsieve.a $(DEPLIBS) $(LIBS)
+
+OBJS = sieve_err.o \
+       sieve.o sieve-lex.o comparator.o interp.o message.o \
+       bc_generate.o bc_dump.o bc_emit.o bc_eval.o \
+       script.o tree.o addr.o addr-lex.o
+
+sieve-lex.c: sieve-lex.l sieve.h
+
+sieve.c sieve.h: sieve.y
+	$(YACC) $(YFLAGS) $(srcdir)/sieve.y
+	mv -f y.tab.c sieve.c 
+	mv -f y.tab.h sieve.h
+
+
+addr-lex.c: addr-lex.l addr.h
+#taken out by new makefile
+#	$(LEX) -t -Paddr $(srcdir)/addr-lex.l > $@
+
+addr.c addr.h: addr.y
+	$(YACC) $(YFLAGS) -p addr $(srcdir)/addr.y
+	mv -f y.tab.c addr.c
+	mv -f y.tab.h addr.h
+
+
+# This is needed because 'makedepend' leaves it out 
+#(this is not in newer version, is it still needed?)
+#addr.o: addr.h  
+
+
+#libsieve.a: sieve.c sieve.h sieve_err.h sieve_err.c $(OBJS)
+#changed to...
+libsieve.a: $(OBJS)
+	rm -f libsieve.a
+	ar cr libsieve.a $(OBJS)
+	$(RANLIB) libsieve.a
+
+sievec: sievec.o libsieve.a
+	$(CC) $(LDFLAGS) -o sievec sievec.o libsieve.a $(DEPLIBS) $(LIBS)
+
+sieved: sieved.o libsieve.a
+	$(CC) $(LDFLAGS) -o sieved sieved.o libsieve.a $(DEPLIBS) $(LIBS)
+
+
+sieve_interface.h: sieve_err.h
+
+sieve_err.h sieve_err.c: sieve_err.et 
+	$(COMPILE_ET) $(srcdir)/sieve_err.et
+
+clean:
+	rm -f sievec sieved test *~ *.o *.a Makefile.bak makedepend.log
+
+distclean: clean
+	rm -f sieve_err.c sieve_err.h
+	rm -f Makefile
+
+clobber:
+	rm -f $(BUILT_SOURCES)
+
+depend:
+	${MAKEDEPEND} $(CPPFLAGS) $(DEFS) -I$(srcdir) $(MAKEDEPEND_CFLAGS) *.c *.y $(srcdir)/*.y $(srcdir)/*.c 1>makedepend.log 2>&1
+
+.c.o:
+	$(CC) -c $(CPPFLAGS) $(DEFS) $(CFLAGS) \
+	$<
+
+# DO NOT DELETE THIS LINE -- make depend depends on it.

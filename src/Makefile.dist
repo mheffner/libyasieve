@@ -1,0 +1,18 @@
+# $Id: Makefile.dist,v 1.9 2007/10/17 20:05:57 murch Exp $
+
+YFLAGS = -d
+
+BUILT_SOURCES = addr.c addr.h addr-lex.c \
+	sieve.c sieve.h sieve-lex.c
+
+dist: $(BUILT_SOURCES)
+
+addr.c addr.h: addr.y
+	$(YACC) $(YFLAGS) -p addr addr.y
+	mv -f y.tab.c addr.c
+	mv -f y.tab.h addr.h
+
+sieve.c sieve.h: sieve.y
+	$(YACC) $(YFLAGS) sieve.y
+	mv -f y.tab.c sieve.c
+	mv -f y.tab.h sieve.h
